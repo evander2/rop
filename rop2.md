@@ -1,9 +1,9 @@
-#rop2
+# 6주차
+
+## rop1
+
+You can use read, write  
+일단 
 
 
-## 1
-
-
-
-
-## 1
+## rop2
